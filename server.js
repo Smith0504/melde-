@@ -117,7 +117,7 @@ io.on('connection', (socket) => {
         broadcastRoomList();
 
         const deck = createDeck();
-        const cardsPerPlayer = 6;
+        const cardsPerPlayer = 8; // Jeder bekommt 8 Karten
 
         room.players.forEach(p => {
             p.hand = deck.splice(0, cardsPerPlayer);
