@@ -25,7 +25,7 @@
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            width: 340px;
+            width: 360px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.2);
             position: absolute;
@@ -51,12 +51,12 @@
         button {
             width: 95%;
             padding: 12px;
-            margin-top: 10px;
+            margin-top: 8px;
             background: #d9534f;
             color: white;
             border: none;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
@@ -97,7 +97,7 @@
             padding: 30px;
             border-radius: 12px;
             width: 80%;
-            max-width: 700px;
+            max-width: 750px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             border: 1px solid rgba(255,255,255,0.2);
         }
@@ -112,9 +112,10 @@
             align-items: center;
         }
 
+        /* Karten-Design */
         .card {
-            width: 60px;
-            height: 90px;
+            width: 65px;
+            height: 95px;
             background: white;
             color: black;
             border-radius: 6px;
@@ -127,6 +128,7 @@
             cursor: pointer;
             user-select: none;
             transition: transform 0.2s;
+            position: relative;
         }
 
         .card:hover {
@@ -135,6 +137,12 @@
 
         .card.red {
             color: #d9534f;
+        }
+
+        /* Spezieller Look für Bildkarten (Bube, Dame, König) */
+        .card.face-card {
+            background: linear-gradient(135deg, #fffdf0 0%, #fff 100%);
+            border: 2px solid #ffcc00;
         }
     </style>
 </head>
@@ -163,9 +171,19 @@
         </div>
     </div>
 
-    <!-- BEREIT-ABFRAGE MODAL (Beim ersten Austausteilen) -->
+    <!-- MODAL: Auswahl der 3 Verteilerarten -->
+    <div id="deal-choice-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
+        <h2>Du bist dran!</h2>
+        <p id="deal-choice-text" style="font-size: 14px; margin-bottom: 15px;"></p>
+        <button onclick="selectDealMethod('3er-Weise')" style="background: #337ab7;">1. 3er-Weise (3 & 3 Karten)</button>
+        <button onclick="selectDealMethod('Einzeln')" style="background: #337ab7;">2. Einzeln (6x 1 Karte)</button>
+        <button onclick="selectDealMethod('Ganz')" style="background: #337ab7;">3. Ganz (6 Karten auf einmal)</button>
+    </div>
+
+    <!-- BEREIT-ABFRAGE MODAL -->
     <div id="ready-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
         <h2>Das Spiel beginnt!</h2>
+        <p id="chosen-method-info" style="font-size: 14px; color: #ffcc00;"></p>
         <p>Karten wurden ausgeteilt. Bist du bereit?</p>
         <button onclick="confirmReady()" style="background: #5cb85c;">Ja, ich bin bereit!</button>
     </div>
@@ -176,7 +194,7 @@
         <div id="lobby-section">
             <p>Am Tisch anwesend:</p>
             <div id="players-list" style="margin-bottom: 20px;"></div>
-            <div id="wait-msg" style="color: #ffcc00; margin-top: 10px;">Warte auf weitere Spieler (wird bei 4 Spielern automatisch gestartet)...</div>
+            <div id="wait-msg" style="color: #ffcc00; margin-top: 10px;">Warte auf Mitspieler...</div>
         </div>
 
         <div id="match-section" style="display: none;">
@@ -190,7 +208,7 @@
         const socket = io();
         let myProfile = {};
         let currentRoom = '';
-        let myHand = [];
+        let gameDataCache = null;
 
         function saveUserData() {
             const vorname = document.getElementById('vorname').value.trim();
@@ -232,6 +250,11 @@
             socket.emit('joinRoom', { roomName, player: myProfile });
         }
 
+        function selectDealMethod(methodName) {
+            document.getElementById('deal-choice-modal').style.display = 'none';
+            socket.emit('chooseDealMethod', { roomName: currentRoom, method: methodName });
+        }
+
         function confirmReady() {
             document.getElementById('ready-modal').style.display = 'none';
             document.getElementById('lobby-section').style.display = 'none';
@@ -240,14 +263,22 @@
             const handContainer = document.getElementById('hand-container');
             handContainer.innerHTML = '';
 
-            myHand.forEach(card => {
+            gameDataCache.hand.forEach(card => {
                 const cardDiv = document.createElement('div');
                 const isRed = card.suit === '♥' || card.suit === '♦';
-                cardDiv.className = `card ${isRed ? 'red' : ''}`;
+                const isFaceCard = ['B', 'D', 'K'].includes(card.value);
+                
+                cardDiv.className = `card ${isRed ? 'red' : ''} ${isFaceCard ? 'face-card' : ''}`;
+                
+                let faceIcon = '';
+                if (card.value === 'K') faceIcon = '👑';
+                else if (card.value === 'D') faceIcon = '👸';
+                else if (card.value === 'B') faceIcon = '🛡️';
+
                 cardDiv.innerHTML = `
-                    <div style="font-size: 14px;">${card.value}</div>
-                    <div style="font-size: 24px; text-align: center;">${card.suit}</div>
-                    <div style="font-size: 14px; text-align: right; transform: rotate(180deg);">${card.value}</div>
+                    <div style="font-size: 13px;">${card.value}</div>
+                    <div style="font-size: 22px; text-align: center;">${isFaceCard ? faceIcon : card.suit}</div>
+                    <div style="font-size: 13px; text-align: right; transform: rotate(180deg);">${card.value}</div>
                 `;
                 handContainer.appendChild(cardDiv);
             });
@@ -293,9 +324,19 @@
             document.getElementById('wait-msg').innerText = `Warte auf Mitspieler... (${data.players.length}/4 am Tisch)`;
         });
 
-        socket.on('gameStarted', (hand) => {
-            myHand = hand;
-            // Zeige das "Bist du bereit?"-Fenster beim allerersten Austausteilen
+        socket.on('promptDealChoice', (data) => {
+            document.getElementById('deal-choice-modal').style.display = 'block';
+            document.getElementById('deal-choice-text').innerText = `Verteiler ist ${data.dealerName}. Du sitzt rechts von ihm und wählst die Verteilerart:`;
+        });
+
+        socket.on('waitingForDealChoice', (data) => {
+            document.getElementById('wait-msg').innerText = `${data.choosingName} (rechts von Verteiler ${data.dealerName}) wählt gerade die Verteilerart...`;
+        });
+
+        socket.on('gameStarted', (data) => {
+            gameDataCache = data;
+            document.getElementById('deal-choice-modal').style.display = 'none';
+            document.getElementById('chosen-method-info').innerText = `Gewählte Verteilerart: ${data.method}`;
             document.getElementById('ready-modal').style.display = 'block';
         });
     </script>
