@@ -17,6 +17,7 @@
             justify-content: center;
             align-items: center;
             color: white;
+            overflow: hidden;
         }
 
         .modal {
@@ -24,9 +25,11 @@
             padding: 25px;
             border-radius: 12px;
             text-align: center;
-            width: 320px;
+            width: 340px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.5);
             border: 1px solid rgba(255,255,255,0.2);
+            position: absolute;
+            z-index: 10;
         }
 
         .modal h2 {
@@ -90,6 +93,48 @@
         #game-area {
             display: none;
             text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 12px;
+            width: 80%;
+            max-width: 700px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .player-box {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card {
+            width: 60px;
+            height: 90px;
+            background: white;
+            color: black;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 5px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+        }
+
+        .card.red {
+            color: #d9534f;
         }
     </style>
 </head>
@@ -118,17 +163,34 @@
         </div>
     </div>
 
-    <!-- SPIELBEREICH (Später) -->
+    <!-- BEREIT-ABFRAGE MODAL (Beim ersten Austausteilen) -->
+    <div id="ready-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
+        <h2>Das Spiel beginnt!</h2>
+        <p>Karten wurden ausgeteilt. Bist du bereit?</p>
+        <button onclick="confirmReady()" style="background: #5cb85c;">Ja, ich bin bereit!</button>
+    </div>
+
+    <!-- SPIELBEREICH / TISCH -->
     <div id="game-area">
-        <h1 id="room-title"></h1>
-        <div id="status-message">Warte auf Mitspieler...</div>
-        <div id="hand-container" style="display: flex; gap: 10px; margin-top: 20px;"></div>
+        <h1 id="room-title" style="color: #ffcc00; margin-top: 0;"></h1>
+        <div id="lobby-section">
+            <p>Am Tisch anwesend:</p>
+            <div id="players-list" style="margin-bottom: 20px;"></div>
+            <div id="wait-msg" style="color: #ffcc00; margin-top: 10px;">Warte auf weitere Spieler (wird bei 4 Spielern automatisch gestartet)...</div>
+        </div>
+
+        <div id="match-section" style="display: none;">
+            <h3>Deine Handkarten:</h3>
+            <div id="hand-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px;"></div>
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         let myProfile = {};
+        let currentRoom = '';
+        let myHand = [];
 
         function saveUserData() {
             const vorname = document.getElementById('vorname').value.trim();
@@ -149,7 +211,6 @@
             document.getElementById('room-modal').style.display = 'block';
             document.getElementById('welcome-user').innerText = `Hallo, ${vorname} aus ${stadt}!`;
 
-            // Nach Räumen fragen
             socket.emit('getRooms');
         }
 
@@ -171,11 +232,26 @@
             socket.emit('joinRoom', { roomName, player: myProfile });
         }
 
-        socket.emit = (function(orig) {
-            return function(event, data) {
-                return orig.apply(this, arguments);
-            };
-        })(socket.emit);
+        function confirmReady() {
+            document.getElementById('ready-modal').style.display = 'none';
+            document.getElementById('lobby-section').style.display = 'none';
+            document.getElementById('match-section').style.display = 'block';
+
+            const handContainer = document.getElementById('hand-container');
+            handContainer.innerHTML = '';
+
+            myHand.forEach(card => {
+                const cardDiv = document.createElement('div');
+                const isRed = card.suit === '♥' || card.suit === '♦';
+                cardDiv.className = `card ${isRed ? 'red' : ''}`;
+                cardDiv.innerHTML = `
+                    <div style="font-size: 14px;">${card.value}</div>
+                    <div style="font-size: 24px; text-align: center;">${card.suit}</div>
+                    <div style="font-size: 14px; text-align: right; transform: rotate(180deg);">${card.value}</div>
+                `;
+                handContainer.appendChild(cardDiv);
+            });
+        }
 
         socket.on('roomListUpdate', (rooms) => {
             const container = document.getElementById('rooms-container');
@@ -197,9 +273,30 @@
         });
 
         socket.on('joinedRoomSuccess', (roomName) => {
+            currentRoom = roomName;
             document.getElementById('room-modal').style.display = 'none';
             document.getElementById('game-area').style.display = 'block';
-            document.getElementById('room-title').innerText = `Raum: ${roomName}`;
+            document.getElementById('room-title').innerText = `Tisch: ${roomName}`;
+        });
+
+        socket.on('roomUpdate', (data) => {
+            const list = document.getElementById('players-list');
+            list.innerHTML = '';
+
+            data.players.forEach((p) => {
+                const div = document.createElement('div');
+                div.className = 'player-box';
+                div.innerHTML = `<span><b>${p.name}</b> (${p.stadt})</span>`;
+                list.appendChild(div);
+            });
+            
+            document.getElementById('wait-msg').innerText = `Warte auf Mitspieler... (${data.players.length}/4 am Tisch)`;
+        });
+
+        socket.on('gameStarted', (hand) => {
+            myHand = hand;
+            // Zeige das "Bist du bereit?"-Fenster beim allerersten Austausteilen
+            document.getElementById('ready-modal').style.display = 'block';
         });
     </script>
 </body>
