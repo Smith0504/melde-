@@ -2,162 +2,205 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Melde - Das Kartenspiel</title>
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#1a0d05">
-    <script src="/socket.io/socket.io.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #1a0d05; color: #fce8d5; overflow: hidden;
-            user-select: none;
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url('tisch.jpg');
+            background-size: cover;
+            background-position: center;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
         }
 
-        #lobby-screen {
-            position: absolute; width: 100%; height: 100%;
-            background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('tisch.jpg') center/cover;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 200;
+        .modal {
+            background: rgba(0, 0, 0, 0.85);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            width: 320px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
         }
 
-        .lobby-card {
-            background: rgba(30, 18, 10, 0.95); border: 2px solid #8c6227;
-            padding: 30px; border-radius: 16px; width: 340px; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
+        .modal h2 {
+            margin-top: 0;
+            color: #ffcc00;
+            letter-spacing: 1px;
         }
-
-        .lobby-card h1 { margin-top: 0; color: #ffd700; font-size: 32px; letter-spacing: 1px; }
 
         input {
-            width: 100%; padding: 12px; margin: 10px 0;
-            border-radius: 8px; border: 1px solid #d4a359;
-            background: #0f0804; color: #fff; font-size: 16px; text-align: center;
+            width: 90%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            text-align: center;
         }
 
         button {
-            width: 100%; padding: 14px; margin-top: 10px; font-size: 16px; font-weight: bold;
-            background: linear-gradient(180deg, #8b0000 0%, #5a0000 100%);
-            color: #fce8d5; border: 1px solid #ff7777; border-radius: 8px; cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            width: 95%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #d9534f;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
         }
-        button:hover { background: linear-gradient(180deg, #a50000 0%, #700000 100%); }
 
-        #game-table {
-            position: relative; width: 100vw; height: 100vh;
-            background: url('tisch.jpg') center/cover no-repeat;
+        button:hover {
+            background: #c9302c;
+        }
+
+        .room-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin: 10px 0;
+            text-align: left;
+            background: rgba(255,255,255,0.1);
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .room-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .room-item:hover {
+            background: rgba(255,255,255,0.35);
+        }
+
+        #game-area {
             display: none;
-        }
-
-        .player-badge {
-            position: absolute; color: #fce8d5; font-weight: bold;
-            background: rgba(15, 8, 3, 0.8); padding: 8px 18px; border-radius: 20px;
-            border: 1px solid rgba(212, 163, 89, 0.5); font-size: 14px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.7);
-        }
-        #player-top { top: 20px; left: 50%; transform: translateX(-50%); }
-        #player-left { top: 45%; left: 20px; transform: translateY(-50%); }
-        #player-right { top: 45%; right: 20px; transform: translateY(-50%); }
-
-        #hand-container {
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; justify-content: center; align-items: flex-end;
-        }
-
-        .card {
-            width: 72px; height: 110px;
-            background: #f4ebe1;
-            border-radius: 6px; border: 1px solid #b8a38d;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; justify-content: space-between;
-            padding: 6px; font-weight: bold; cursor: pointer;
-            transition: transform 0.2s ease, border-color 0.2s ease; margin-left: -20px;
-        }
-        .card:first-child { margin-left: 0; }
-        .card.red { color: #a00000; }
-        .card.black { color: #1a1a1a; }
-        .card.selected { transform: translateY(-22px); border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.6); }
-
-        #status-box {
-            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.85); color: #ffd700; padding: 10px 22px;
-            border-radius: 20px; font-size: 15px; border: 1px solid #d4a359;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.8); text-align: center;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-<div id="lobby-screen">
-    <div class="lobby-card">
-        <h1>MELDE</h1>
-        <p style="color: #d4a359; font-size: 14px; margin-bottom: 15px;">Raum erstellen oder beitreten</p>
-        <input type="text" id="player-name" placeholder="Dein Name" value="Spieler 1">
-        <input type="text" id="room-name" placeholder="Raum-Name (z.B. Familie)" value="Familie">
-        <button onclick="joinLobby()">Raum Betreten</button>
-        <p id="lobby-status" style="margin-top: 15px; color: #aaa; font-size: 13px;"></p>
+    <!-- SCHRITT 1: Benutzerdaten eingeben -->
+    <div id="user-modal" class="modal">
+        <h2>MELDE</h2>
+        <p>Bitte gib deine Daten ein</p>
+        <input type="text" id="vorname" placeholder="Vorname" required>
+        <input type="text" id="nachname" placeholder="Nachname" required>
+        <input type="text" id="stadt" placeholder="Stadt" required>
+        <button onclick="saveUserData()">Weiter</button>
     </div>
-</div>
 
-<div id="game-table">
-    <div id="status-box">Warten auf weitere Spieler...</div>
-    <div id="player-top" class="player-badge">Partner</div>
-    <div id="player-left" class="player-badge">Gegner 1</div>
-    <div id="player-right" class="player-badge">Gegner 2</div>
-    <div id="hand-container"></div>
-</div>
+    <!-- SCHRITT 2: Räume erstellen oder beitreten -->
+    <div id="room-modal" class="modal" style="display: none;">
+        <h2>RÄUME</h2>
+        <p id="welcome-user"></p>
+        <input type="text" id="room-name" placeholder="Neuer Raum (max. 15 Zeichen)" maxlength="15">
+        <button onclick="createRoom()">Raum erstellen</button>
+        
+        <p style="margin: 15px 0 5px 0; font-size: 14px;">Vorhandene Räume:</p>
+        <div id="rooms-container" class="room-list">
+            <div style="color: #aaa; text-align: center; font-size: 14px;">Keine Räume da</div>
+        </div>
+    </div>
 
-<script>
-    const socket = io();
-    let myHand = [];
+    <!-- SPIELBEREICH (Später) -->
+    <div id="game-area">
+        <h1 id="room-title"></h1>
+        <div id="status-message">Warte auf Mitspieler...</div>
+        <div id="hand-container" style="display: flex; gap: 10px; margin-top: 20px;"></div>
+    </div>
 
-    function joinLobby() {
-        const playerName = document.getElementById('player-name').value.trim();
-        const roomName = document.getElementById('room-name').value.trim();
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let myProfile = {};
 
-        if (!playerName || !roomName) {
-            alert("Bitte Name und Raum eingeben!");
-            return;
+        function saveUserData() {
+            const vorname = document.getElementById('vorname').value.trim();
+            const nachname = document.getElementById('nachname').value.trim();
+            const stadt = document.getElementById('stadt').value.trim();
+
+            if (!vorname || !nachname || !stadt) {
+                alert('Bitte fülle alle Felder aus!');
+                return;
+            }
+
+            myProfile = {
+                name: `${vorname} ${nachname}`,
+                stadt: stadt
+            };
+
+            document.getElementById('user-modal').style.display = 'none';
+            document.getElementById('room-modal').style.display = 'block';
+            document.getElementById('welcome-user').innerText = `Hallo, ${vorname} aus ${stadt}!`;
+
+            // Nach Räumen fragen
+            socket.emit('getRooms');
         }
 
-        socket.emit('joinRoom', { roomName, playerName });
-        document.getElementById('lobby-status').innerText = "Verbinde mit Raum '" + roomName + "'...";
-    }
+        function createRoom() {
+            const roomName = document.getElementById('room-name').value.trim();
+            if (!roomName) {
+                alert('Bitte gib einen Namen für den Raum ein!');
+                return;
+            }
+            if (roomName.length > 15) {
+                alert('Der Raumname darf maximal 15 Zeichen lang sein!');
+                return;
+            }
 
-    socket.on('roomUpdate', (data) => {
-        document.getElementById('lobby-status').innerText = `Im Raum (${data.playerCount}/4 Spieler): ${data.players.join(', ')}`;
-    });
+            socket.emit('joinRoom', { roomName, player: myProfile });
+        }
 
-    socket.on('gameStart', (data) => {
-        document.getElementById('lobby-screen').style.display = 'none';
-        document.getElementById('game-table').style.display = 'block';
-        document.getElementById('status-box').innerText = "Spiel gestartet! Karten wurden perfekt gemischt und verteilt.";
-        myHand = data.hand;
-        renderHand();
-    });
+        function joinSpecificRoom(roomName) {
+            socket.emit('joinRoom', { roomName, player: myProfile });
+        }
 
-    socket.on('message', (msg) => {
-        document.getElementById('status-box').innerText = msg;
-    });
+        socket.emit = (function(orig) {
+            return function(event, data) {
+                return orig.apply(this, arguments);
+            };
+        })(socket.emit);
 
-    function renderHand() {
-        const container = document.getElementById('hand-container');
-        container.innerHTML = '';
-        myHand.forEach((card) => {
-            const cardEl = document.createElement('div');
-            cardEl.className = `card ${card.isRed ? 'red' : 'black'}`;
-            cardEl.onclick = () => cardEl.classList.toggle('selected');
-            cardEl.innerHTML = `
-                <div>${card.value}</div>
-                <div style="text-align: center; font-size: 22px;">${card.symbol}</div>
-                <div style="transform: rotate(180deg); align-self: flex-end;">${card.value}</div>
-            `;
-            container.appendChild(cardEl);
+        socket.on('roomListUpdate', (rooms) => {
+            const container = document.getElementById('rooms-container');
+            container.innerHTML = '';
+            
+            if (Object.keys(rooms).length === 0) {
+                container.innerHTML = '<div style="color: #aaa; text-align: center; font-size: 14px;">Keine Räume da</div>';
+                return;
+            }
+
+            for (let rName in rooms) {
+                const room = rooms[rName];
+                const div = document.createElement('div');
+                div.className = 'room-item';
+                div.innerHTML = `<span>${rName}</span> <span>(${room.playerCount}/4 Spieler)</span>`;
+                div.onclick = () => joinSpecificRoom(rName);
+                container.appendChild(div);
+            }
         });
-    }
-</script>
 
+        socket.on('joinedRoomSuccess', (roomName) => {
+            document.getElementById('room-modal').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            document.getElementById('room-title').innerText = `Raum: ${roomName}`;
+        });
+    </script>
 </body>
 </html>
