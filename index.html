@@ -96,8 +96,8 @@
             background: rgba(0, 0, 0, 0.8);
             padding: 30px;
             border-radius: 12px;
-            width: 80%;
-            max-width: 750px;
+            width: 85%;
+            max-width: 800px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.6);
             border: 1px solid rgba(255,255,255,0.2);
         }
@@ -112,7 +112,7 @@
             align-items: center;
         }
 
-        /* Karten-Design */
+        /* Karten-Design mit Bildkarten */
         .card {
             width: 65px;
             height: 95px;
@@ -139,7 +139,6 @@
             color: #d9534f;
         }
 
-        /* Spezieller Look für Bildkarten (Bube, Dame, König) */
         .card.face-card {
             background: linear-gradient(135deg, #fffdf0 0%, #fff 100%);
             border: 2px solid #ffcc00;
@@ -171,20 +170,20 @@
         </div>
     </div>
 
-    <!-- MODAL: Auswahl der 3 Verteilerarten -->
+    <!-- MODAL: Auswahl der 3 echten Verteilerarten -->
     <div id="deal-choice-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
         <h2>Du bist dran!</h2>
         <p id="deal-choice-text" style="font-size: 14px; margin-bottom: 15px;"></p>
-        <button onclick="selectDealMethod('3er-Weise')" style="background: #337ab7;">1. 3er-Weise (3 & 3 Karten)</button>
-        <button onclick="selectDealMethod('Einzeln')" style="background: #337ab7;">2. Einzeln (6x 1 Karte)</button>
-        <button onclick="selectDealMethod('Ganz')" style="background: #337ab7;">3. Ganz (6 Karten auf einmal)</button>
+        <button onclick="selectDealMethod('Klopfen')" style="background: #337ab7;">Klopfen</button>
+        <button onclick="selectDealMethod('Umdrehen')" style="background: #337ab7;">Umdrehen</button>
+        <button onclick="selectDealMethod('Aufdecken')" style="background: #337ab7;">Aufdecken</button>
     </div>
 
     <!-- BEREIT-ABFRAGE MODAL -->
     <div id="ready-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
         <h2>Das Spiel beginnt!</h2>
         <p id="chosen-method-info" style="font-size: 14px; color: #ffcc00;"></p>
-        <p>Karten wurden ausgeteilt. Bist du bereit?</p>
+        <p>Jeder hat 8 Karten erhalten. Bist du bereit?</p>
         <button onclick="confirmReady()" style="background: #5cb85c;">Ja, ich bin bereit!</button>
     </div>
 
@@ -198,8 +197,8 @@
         </div>
 
         <div id="match-section" style="display: none;">
-            <h3>Deine Handkarten:</h3>
-            <div id="hand-container" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 20px;"></div>
+            <h3>Deine 8 Handkarten:</h3>
+            <div id="hand-container" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 20px;"></div>
         </div>
     </div>
 
