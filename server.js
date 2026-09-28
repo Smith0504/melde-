@@ -66,7 +66,8 @@ io.on('connection', (socket) => {
             rooms[roomName] = {
                 name: roomName,
                 players: [],
-                gameStarted: false
+                gameStarted: false,
+                dealerIndex: 0
             };
         }
 
@@ -85,19 +86,43 @@ io.on('connection', (socket) => {
             playerCount: room.players.length
         });
 
-        // WENN 4 SPIELER DA SIND -> AUTOMATISCH STARTEN!
+        // WENN 4 SPIELER DA SIND -> VERTEILER BESTIMMEN & AUSWAHL STARTEN
         if (room.players.length === 4 && !room.gameStarted) {
-            room.gameStarted = true;
-            broadcastRoomList();
+            room.dealerIndex = 0; // Erster Spieler ist Verteiler
+            const choosingIndex = (room.dealerIndex + 3) % 4; // Spieler rechts vom Verteiler
+            const choosingPlayer = room.players[choosingIndex];
+            const dealerPlayer = room.players[room.dealerIndex];
 
-            const deck = createDeck();
-            const cardsPerPlayer = 6;
+            io.to(choosingPlayer.id).emit('promptDealChoice', {
+                dealerName: dealerPlayer.name
+            });
 
             room.players.forEach(p => {
-                p.hand = deck.splice(0, cardsPerPlayer);
-                io.to(p.id).emit('gameStarted', p.hand);
+                if (p.id !== choosingPlayer.id) {
+                    io.to(p.id).emit('waitingForDealChoice', {
+                        choosingName: choosingPlayer.name,
+                        dealerName: dealerPlayer.name
+                    });
+                }
             });
         }
+    });
+
+    // Wenn der Spieler die Verteilerart ausgewählt hat
+    socket.on('chooseDealMethod', ({ roomName, method }) => {
+        const room = rooms[roomName];
+        if (!room) return;
+
+        room.gameStarted = true;
+        broadcastRoomList();
+
+        const deck = createDeck();
+        const cardsPerPlayer = 6;
+
+        room.players.forEach(p => {
+            p.hand = deck.splice(0, cardsPerPlayer);
+            io.to(p.id).emit('gameStarted', { hand: p.hand, method: method });
+        });
     });
 
     socket.on('disconnect', () => {
