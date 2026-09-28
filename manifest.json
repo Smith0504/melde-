@@ -1,0 +1,9 @@
+{
+  "name": "Melde - Kartenspiel",
+  "short_name": "Melde",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a0d05",
+  "theme_color": "#1a0d05",
+  "orientation": "landscape"
+}
