@@ -1,343 +1,111 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Melde - Das Kartenspiel</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-image: url('tisch.jpg');
-            background-size: cover;
-            background-position: center;
-            font-family: Arial, sans-serif;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            overflow: hidden;
-        }
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#16241c" />
+    <meta name="description" content="Melde — ein gemeinsames Kartenspiel mit öffentlicher Lobby und Skatblatt." />
+    <link rel="manifest" href="manifest.json" />
+    <title>Melde — Das Kartenspiel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="rules.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#start" aria-label="Melde Startseite">
+        <span class="brand-mark">M<span>♣</span></span>
+        <span class="brand-name">melde<span>.</span></span>
+      </a>
+      <nav aria-label="Hauptnavigation"><a href="#public-rooms">Räume</a><a href="SPIELREGELN.md" target="_blank" rel="noreferrer">Spielregeln</a></nav>
+      <span class="status"><i></i> <span>LIVE-RÄUME</span></span>
+    </header>
 
-        .modal {
-            background: rgba(0, 0, 0, 0.85);
-            padding: 25px;
-            border-radius: 12px;
-            text-align: center;
-            width: 360px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            position: absolute;
-            z-index: 10;
-        }
-
-        .modal h2 {
-            margin-top: 0;
-            color: #ffcc00;
-            letter-spacing: 1px;
-        }
-
-        input {
-            width: 90%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 16px;
-            text-align: center;
-        }
-
-        button {
-            width: 95%;
-            padding: 12px;
-            margin-top: 8px;
-            background: #d9534f;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #c9302c;
-        }
-
-        .room-list {
-            max-height: 150px;
-            overflow-y: auto;
-            margin: 10px 0;
-            text-align: left;
-            background: rgba(255,255,255,0.1);
-            padding: 5px;
-            border-radius: 6px;
-        }
-
-        .room-item {
-            padding: 8px;
-            margin: 4px 0;
-            background: rgba(255,255,255,0.2);
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .room-item:hover {
-            background: rgba(255,255,255,0.35);
-        }
-
-        #game-area {
-            display: none;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.8);
-            padding: 30px;
-            border-radius: 12px;
-            width: 85%;
-            max-width: 800px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-
-        .player-box {
-            background: rgba(255, 255, 255, 0.15);
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Karten-Design mit Bildkarten */
-        .card {
-            width: 65px;
-            height: 95px;
-            background: white;
-            color: black;
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 5px;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            cursor: pointer;
-            user-select: none;
-            transition: transform 0.2s;
-            position: relative;
-        }
-
-        .card:hover {
-            transform: translateY(-10px);
-        }
-
-        .card.red {
-            color: #d9534f;
-        }
-
-        .card.face-card {
-            background: linear-gradient(135deg, #fffdf0 0%, #fff 100%);
-            border: 2px solid #ffcc00;
-        }
-    </style>
-</head>
-<body>
-
-    <!-- SCHRITT 1: Benutzerdaten eingeben -->
-    <div id="user-modal" class="modal">
-        <h2>MELDE</h2>
-        <p>Bitte gib deine Daten ein</p>
-        <input type="text" id="vorname" placeholder="Vorname" required>
-        <input type="text" id="nachname" placeholder="Nachname" required>
-        <input type="text" id="stadt" placeholder="Stadt" required>
-        <button onclick="saveUserData()">Weiter</button>
-    </div>
-
-    <!-- SCHRITT 2: Räume erstellen oder beitreten -->
-    <div id="room-modal" class="modal" style="display: none;">
-        <h2>RÄUME</h2>
-        <p id="welcome-user"></p>
-        <input type="text" id="room-name" placeholder="Neuer Raum (max. 15 Zeichen)" maxlength="15">
-        <button onclick="createRoom()">Raum erstellen</button>
-        
-        <p style="margin: 15px 0 5px 0; font-size: 14px;">Vorhandene Räume:</p>
-        <div id="rooms-container" class="room-list">
-            <div style="color: #aaa; text-align: center; font-size: 14px;">Keine Räume da</div>
+    <main id="start">
+      <section class="profile-screen" id="profile-screen">
+        <div class="intro-panel">
+          <p class="eyebrow"><span class="eyebrow-line"></span> EIN NEUES KARTENSPIEL</p>
+          <h1>Melde<span class="period">.</span></h1>
+          <p class="hero-lede">Vier Spieler. Zwei Teams. Ein Skatblatt mit seinen eigenen Regeln.</p>
+          <div class="intro-stats"><div><strong>32</strong><span>KARTEN</span></div><div><strong>120</strong><span>KARTENPUNKTE</span></div><div><strong>4</strong><span>SPIELER</span></div></div>
+          <div class="wood-stamp"><span>♣</span><span>GUT BLATT</span><span>♠</span></div>
         </div>
-    </div>
+        <form class="profile-card" id="profile-form">
+          <p class="eyebrow dark"><span class="eyebrow-line"></span> AM TISCH PLATZ NEHMEN</p>
+          <h2>Wer bist du?</h2>
+          <p>Mit diesen Angaben erscheinst du in den öffentlichen Spielräumen.</p>
+          <label for="first-name">Vorname</label><input id="first-name" name="firstName" autocomplete="given-name" maxlength="40" required />
+          <label for="last-name">Nachname</label><input id="last-name" name="lastName" autocomplete="family-name" maxlength="60" required />
+          <label for="city">Stadt</label><input id="city" name="city" autocomplete="address-level2" maxlength="60" required />
+          <button class="primary-button" type="submit">Weiter zu den Räumen <span>↗</span></button>
+          <p class="privacy-note">Dein Profil wird in den offenen Räumen angezeigt.</p>
+        </form>
+      </section>
 
-    <!-- MODAL: Auswahl der 3 echten Verteilerarten -->
-    <div id="deal-choice-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
-        <h2>Du bist dran!</h2>
-        <p id="deal-choice-text" style="font-size: 14px; margin-bottom: 15px;"></p>
-        <button onclick="selectDealMethod('Klopfen')" style="background: #337ab7;">Klopfen</button>
-        <button onclick="selectDealMethod('Umdrehen')" style="background: #337ab7;">Umdrehen</button>
-        <button onclick="selectDealMethod('Aufdecken')" style="background: #337ab7;">Aufdecken</button>
-    </div>
-
-    <!-- BEREIT-ABFRAGE MODAL -->
-    <div id="ready-modal" class="modal" style="display: none; background: rgba(20, 20, 20, 0.95); border: 2px solid #ffcc00;">
-        <h2>Das Spiel beginnt!</h2>
-        <p id="chosen-method-info" style="font-size: 14px; color: #ffcc00;"></p>
-        <p>Jeder hat 8 Karten erhalten. Bist du bereit?</p>
-        <button onclick="confirmReady()" style="background: #5cb85c;">Ja, ich bin bereit!</button>
-    </div>
-
-    <!-- SPIELBEREICH / TISCH -->
-    <div id="game-area">
-        <h1 id="room-title" style="color: #ffcc00; margin-top: 0;"></h1>
-        <div id="lobby-section">
-            <p>Am Tisch anwesend:</p>
-            <div id="players-list" style="margin-bottom: 20px;"></div>
-            <div id="wait-msg" style="color: #ffcc00; margin-top: 10px;">Warte auf Mitspieler...</div>
+      <section class="lobby-screen hidden" id="lobby-screen">
+        <div class="lobby-heading">
+          <div><p class="eyebrow dark"><span class="eyebrow-line"></span> DER SPIELTISCH</p><h2>Wähle deinen Raum.</h2><p class="section-intro">Öffentliche Räume sind für alle sichtbar. Vier Spieler am Tisch starten eine Partie.</p></div>
+          <button class="quiet-button" id="change-profile">Profil ändern</button>
         </div>
-
-        <div id="match-section" style="display: none;">
-            <h3>Deine 8 Handkarten:</h3>
-            <div id="hand-container" style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 20px;"></div>
+        <div class="lobby-columns">
+          <section class="rooms-panel" id="public-rooms" aria-labelledby="rooms-title">
+            <div class="panel-heading"><div><span class="live-dot"></span><h3 id="rooms-title">Offene Räume</h3></div><button class="icon-button" id="refresh-rooms" aria-label="Räume aktualisieren">↻</button></div>
+            <div class="room-list" id="room-list" aria-live="polite"><div class="empty-rooms">Suche nach offenen Spieltischen …</div></div>
+          </section>
+          <form class="create-room-card" id="create-room-form">
+            <div class="add-panel-top"><span class="add-number">+</span><span class="mono-label">NEUER TISCH</span></div>
+            <h3>Einen Raum eröffnen</h3>
+            <p>Gib deinem Spieltisch einen Namen. Maximal 15 Zeichen.</p>
+            <label for="room-name">Raumname</label><input id="room-name" name="roomName" maxlength="15" required placeholder="Zum Beispiel: Stammtisch" />
+            <button class="primary-button" type="submit">Raum erstellen <span>↗</span></button>
+            <p class="form-note" id="lobby-note" role="status"></p>
+          </form>
         </div>
-    </div>
+      </section>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let myProfile = {};
-        let currentRoom = '';
-        let gameDataCache = null;
+      <section class="room-screen hidden" id="room-screen">
+        <div class="room-heading">
+          <button class="quiet-button" id="leave-room">← Zur Raumliste</button>
+          <div class="room-title"><p class="eyebrow dark"><span class="eyebrow-line"></span> SPIELRAUM <span id="room-code"></span></p><h2 id="room-name-heading">Dein Tisch</h2></div>
+          <span class="capacity-pill" id="room-capacity">0 / 4 SPIELER</span>
+        </div>
+        <section class="waiting-room" id="waiting-room">
+          <div class="table-frame">
+            <div class="felt-table">
+              <img class="camp-engraving" src="tisch.jpg" alt="Gravur mit Tieren am Lagerfeuer, an einer Sitzgruppe" />
+              <div class="seat-grid" id="seat-grid"></div>
+              <div class="ready-status" id="ready-status">Warte auf weitere Spieler …</div>
+            </div>
+          </div>
+          <div class="waiting-controls"><p id="waiting-copy">Sobald vier Spieler Platz genommen haben, können alle bereit bestätigen.</p><button class="primary-button hidden" id="ready-button">Ich bin bereit <span>✓</span></button></div>
+        </section>
 
-        function saveUserData() {
-            const vorname = document.getElementById('vorname').value.trim();
-            const nachname = document.getElementById('nachname').value.trim();
-            const stadt = document.getElementById('stadt').value.trim();
+        <section class="game-screen hidden" id="game-screen">
+          <div class="game-scorebar" id="game-scorebar"></div>
+          <div class="table-frame playing-frame">
+            <div class="felt-table playing-table">
+              <img class="camp-engraving playing-engraving" src="tisch.jpg" alt="" />
+              <div class="playing-seats" id="playing-seats"></div>
+              <div class="trick-center" id="trick-center"></div>
+            </div>
+          </div>
+          <div class="game-notice" id="game-notice" aria-live="polite"></div>
+          <div class="action-panel" id="action-panel"></div>
+          <div class="hand-panel" id="hand-panel"></div>
+        </section>
+      </section>
 
-            if (!vorname || !nachname || !stadt) {
-                alert('Bitte fülle alle Felder aus!');
-                return;
-            }
+      <section class="rules-strip" aria-label="Spiel auf einen Blick">
+        <span><strong>01</strong> Kreuz-Dame am höchsten</span><i></i>
+        <span><strong>02</strong> Mindestens 61 Kartenpunkte</span><i></i>
+        <span><strong>03</strong> Partie bis zwölf Spielpunkte</span>
+      </section>
+    </main>
 
-            myProfile = {
-                name: `${vorname} ${nachname}`,
-                stadt: stadt
-            };
-
-            document.getElementById('user-modal').style.display = 'none';
-            document.getElementById('room-modal').style.display = 'block';
-            document.getElementById('welcome-user').innerText = `Hallo, ${vorname} aus ${stadt}!`;
-
-            socket.emit('getRooms');
-        }
-
-        function createRoom() {
-            const roomName = document.getElementById('room-name').value.trim();
-            if (!roomName) {
-                alert('Bitte gib einen Namen für den Raum ein!');
-                return;
-            }
-            if (roomName.length > 15) {
-                alert('Der Raumname darf maximal 15 Zeichen lang sein!');
-                return;
-            }
-
-            socket.emit('joinRoom', { roomName, player: myProfile });
-        }
-
-        function joinSpecificRoom(roomName) {
-            socket.emit('joinRoom', { roomName, player: myProfile });
-        }
-
-        function selectDealMethod(methodName) {
-            document.getElementById('deal-choice-modal').style.display = 'none';
-            socket.emit('chooseDealMethod', { roomName: currentRoom, method: methodName });
-        }
-
-        function confirmReady() {
-            document.getElementById('ready-modal').style.display = 'none';
-            document.getElementById('lobby-section').style.display = 'none';
-            document.getElementById('match-section').style.display = 'block';
-
-            const handContainer = document.getElementById('hand-container');
-            handContainer.innerHTML = '';
-
-            gameDataCache.hand.forEach(card => {
-                const cardDiv = document.createElement('div');
-                const isRed = card.suit === '♥' || card.suit === '♦';
-                const isFaceCard = ['B', 'D', 'K'].includes(card.value);
-                
-                cardDiv.className = `card ${isRed ? 'red' : ''} ${isFaceCard ? 'face-card' : ''}`;
-                
-                let faceIcon = '';
-                if (card.value === 'K') faceIcon = '👑';
-                else if (card.value === 'D') faceIcon = '👸';
-                else if (card.value === 'B') faceIcon = '🛡️';
-
-                cardDiv.innerHTML = `
-                    <div style="font-size: 13px;">${card.value}</div>
-                    <div style="font-size: 22px; text-align: center;">${isFaceCard ? faceIcon : card.suit}</div>
-                    <div style="font-size: 13px; text-align: right; transform: rotate(180deg);">${card.value}</div>
-                `;
-                handContainer.appendChild(cardDiv);
-            });
-        }
-
-        socket.on('roomListUpdate', (rooms) => {
-            const container = document.getElementById('rooms-container');
-            container.innerHTML = '';
-            
-            if (Object.keys(rooms).length === 0) {
-                container.innerHTML = '<div style="color: #aaa; text-align: center; font-size: 14px;">Keine Räume da</div>';
-                return;
-            }
-
-            for (let rName in rooms) {
-                const room = rooms[rName];
-                const div = document.createElement('div');
-                div.className = 'room-item';
-                div.innerHTML = `<span>${rName}</span> <span>(${room.playerCount}/4 Spieler)</span>`;
-                div.onclick = () => joinSpecificRoom(rName);
-                container.appendChild(div);
-            }
-        });
-
-        socket.on('joinedRoomSuccess', (roomName) => {
-            currentRoom = roomName;
-            document.getElementById('room-modal').style.display = 'none';
-            document.getElementById('game-area').style.display = 'block';
-            document.getElementById('room-title').innerText = `Tisch: ${roomName}`;
-        });
-
-        socket.on('roomUpdate', (data) => {
-            const list = document.getElementById('players-list');
-            list.innerHTML = '';
-
-            data.players.forEach((p) => {
-                const div = document.createElement('div');
-                div.className = 'player-box';
-                div.innerHTML = `<span><b>${p.name}</b> (${p.stadt})</span>`;
-                list.appendChild(div);
-            });
-            
-            document.getElementById('wait-msg').innerText = `Warte auf Mitspieler... (${data.players.length}/4 am Tisch)`;
-        });
-
-        socket.on('promptDealChoice', (data) => {
-            document.getElementById('deal-choice-modal').style.display = 'block';
-            document.getElementById('deal-choice-text').innerText = `Verteiler ist ${data.dealerName}. Du sitzt rechts von ihm und wählst die Verteilerart:`;
-        });
-
-        socket.on('waitingForDealChoice', (data) => {
-            document.getElementById('wait-msg').innerText = `${data.choosingName} (rechts von Verteiler ${data.dealerName}) wählt gerade die Verteilerart...`;
-        });
-
-        socket.on('gameStarted', (data) => {
-            gameDataCache = data;
-            document.getElementById('deal-choice-modal').style.display = 'none';
-            document.getElementById('chosen-method-info').innerText = `Gewählte Verteilerart: ${data.method}`;
-            document.getElementById('ready-modal').style.display = 'block';
-        });
-    </script>
-</body>
+    <footer class="footer"><a class="brand footer-brand" href="#start"><span class="brand-mark">M<span>♣</span></span><span class="brand-name">melde<span>.</span></span></a><a href="SPIELREGELN.md" target="_blank" rel="noreferrer">Regelwerk ansehen</a><span class="footer-state">VERSION 0.2 · GEMEINSAM AM TISCH</span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </body>
 </html>
